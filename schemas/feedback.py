@@ -1,18 +1,21 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-class Feedback(BaseModel):
-    company = str
-    author = str
-    text = str
-    rate = str
-    date = datetime
+# Базовый класс для отзыва
+class FeedbackBase(BaseModel):
+    company: str
+    author: str
+    text: str
+    rate: str
+    date: datetime
 
-class FeedbackCreate(Feedback):
+# Класс для создания отзыва
+class FeedbackCreate(FeedbackBase):
     pass
 
-class Feedback(Feedback):
+# Класс для отзыва с ID
+class Feedback(FeedbackBase):
     id: int
 
     class Config:
-        orm_mode = True
+        orm_mode = True  # Для работы с SQLAlchemy
