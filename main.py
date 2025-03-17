@@ -2,17 +2,18 @@ import pandas as pd
 from yandex_reviews_parser.utils import YandexParser
 import datetime
 from transformers import pipeline
+from models import Feedback
+from schemas import FeedbackCreate
+from database import SessionLocal, init_db
+from sqlalchemy.orm import Session
 
-# Используем нужную модель
 sentiment_analysis = pipeline(model="seara/rubert-tiny2-russian-sentiment")
 
 id_ya = 236936151183  # ID Компании Yandex карты
 parser = YandexParser(id_ya)
 
-# Парсим данные с Yandex
 all_data = parser.parse()  
 
-# Проверяем, что отзывы были найдены
 if not all_data or "company_reviews" not in all_data:
     print("Отзывы не найдены")
 else:
@@ -33,38 +34,62 @@ else:
                 "Комментарий": review.get("text", "Нет комментария")
             })
 
-        # Создаем DataFrame из отформатированных данных
         df = pd.DataFrame(formatted_reviews)
 
-        # Функция для анализа тональности текста
         def analyze_sentiment(text):
             result = sentiment_analysis(text, truncation=True, padding=True)
             
-            # Печатаем результат, чтобы посмотреть, что возвращает модель
             print(f"Текст: {text}")
             print(f"Результат модели: {result}")
             
-            # Если результат вернулся в числовом формате
             if isinstance(result[0]['label'], int):
                 sentiment_label = result[0]['label']
             else:
                 sentiment_label = result[0]['label']
 
-            # Маппинг меток модели в понятные категории
-            if sentiment_label == "neutral":  # Нейтральный
+            if sentiment_label == "neutral":  
                 return 'Нейтральный'
-            elif sentiment_label == "positive":  # Положительный
+            elif sentiment_label == "positive":  
                 return 'Положительный'
-            elif sentiment_label == "negative":  # Отрицательный
+            elif sentiment_label == "negative":  
                 return 'Отрицательный'
             else:
                 return 'Неопределено'
 
-        # Применяем функцию для получения тональности
         df['Тональность'] = df['Комментарий'].apply(analyze_sentiment)
 
-        # Выводим результат
         print(df)
 
-        # Сохраняем результат в CSV файл
         df.to_csv("reviewBERT2.csv", index=False)
+
+
+        init_db()
+
+        def get_db():
+            db = SessionLocal
+            try:
+                yield db
+            finally:
+                db.close()
+
+        def save_reviews_to_db(reviews, db: Session):
+            for _, row in reviews.iterrows():
+                review_data = FeedbackCreate(
+                    company=row["Компания"],
+                    author=row["Автор"],
+                    date=datetime.datetime.strptime(row["Дата"], '%Y-%m-%d %H:%M:%S'),
+                    rating=row["Оценка"],
+                    comment=row["Комментарий"],
+                    sentiment=row["Тональность"]
+                )
+                db_review = Feedback(**review_data.dict())
+                db.add(db_review)
+            db.commit()
+
+        # Получение сессии и сохранение данных
+        db = next(get_db())
+        save_reviews_to_db(df, db)
+        print("Данные успешно загружены в базу данных.")
+        
+
+        

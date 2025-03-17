@@ -1,12 +1,12 @@
 from sqlalchemy import Column, Integer, Float, String, DateTime
-from db import Base
+from database import Base
 
 class Feedback(Base):
     __tablename__ = "feedback"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    message = Column(String)
-    site = Column(String)
-    stars = Column(Float)
+    company = Column(String)
+    author = Column(String)
+    text = Column(String)
+    rate = Column(String)
     date = Column(DateTime)

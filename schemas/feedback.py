@@ -2,16 +2,16 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class Feedback(BaseModel):
-    name: str
-    message: str
-    site: str
-    stars: float
-    date: datetime
+    company = str
+    author = str
+    text = str
+    rate = str
+    date = datetime
 
-class TaskCreate(Feedback):
+class FeedbackCreate(Feedback):
     pass
 
-class Task(Feedback):
+class Feedback(Feedback):
     id: int
 
     class Config:
