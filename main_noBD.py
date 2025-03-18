@@ -80,35 +80,13 @@ def analyze_sentiment(text):
         return 'Отрицательный'
     return 'Неопределено'
 
-def get_db():
-    """Получение сессии БД"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-def save_reviews_to_db(reviews, db: Session):
-    """Сохранение отзывов в БД"""
-    for _, row in reviews.iterrows():
-        review_data = FeedbackCreate(
-            company=row["Компания"],
-            author=row["Автор"],
-            date=datetime.datetime.strptime(row["Дата"], '%Y-%m-%d %H:%M:%S'),
-            text=row["Комментарий"],
-            rate=row["Тональность"]
-        )
-        db_review = Feedback(**review_data.model_dump())
-        db.add(db_review)
-    db.commit()
-
 def process_reviews():
-    """Основная функция для сбора и загрузки отзывов в БД"""
+    """Основная функция для сбора и сохранения отзывов в CSV"""
     all_reviews = []
 
     for company_name, ids in MO_dict.items():
         if not isinstance(ids, list):
-            ids = [ids]  
+            ids = [ids]  # Преобразуем одиночный ID в список
 
         for id_ya in ids:
             parser = YandexParser(id_ya)
@@ -139,12 +117,9 @@ def process_reviews():
 
     if all_reviews:
         full_df = pd.concat(all_reviews, ignore_index=True)
-        full_df.to_csv("all_reviews.csv", index=False) 
-
-        db = next(get_db())
-        save_reviews_to_db(full_df, db)
-        print("Все данные успешно загружены в базу данных.")
+        full_df.to_csv("all_reviews.csv", index=False)  
+        print("Все отзывы успешно сохранены в all_reviews.csv")
     else:
-        print("Нет данных для загрузки.")
+        print("Нет данных для сохранения.")
 
 process_reviews()
